@@ -1,0 +1,3153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Thyrocare Report Automation - Advanced Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#15193a" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.js" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg1: #0f1226;
+      --bg2: #15193a;
+      --card-bg: rgba(255, 255, 255, 0.08);
+      --card-border: rgba(255, 255, 255, 0.1);
+      --muted: rgba(255,255,255,0.7);
+      --text: #ffffff;
+      --primary: #00d2ff;
+      --primary2: #3a7bd5;
+      --success: #2ecc71;
+      --danger: #e74c3c;
+      --warning: #f1c40f;
+      --glass-bg: rgba(255, 255, 255, 0.08);
+      --glass-border: rgba(255, 255, 255, 0.1);
+      --neumorphic-shadow: 4px 4px 15px rgba(0, 0, 0, 0.5), -4px -4px 15px rgba(255, 255, 255, 0.05);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+      color: var(--text);
+      background: radial-gradient(circle at 20% 20%, #1f2557 0%, var(--bg1) 40%), 
+                  linear-gradient(180deg, var(--bg2), var(--bg1));
+      min-height: 100vh;
+      padding: 20px;
+      font-weight: 400;
+    }
+
+    body.light-theme {
+      --bg1: #f5f7fa;
+      --bg2: #ffffff;
+      --card-bg: rgba(0, 0, 0, 0.04);
+      --card-border: rgba(0, 0, 0, 0.1);
+      --muted: rgba(0,0,0,0.6);
+      --text: #1a1a1a;
+      --primary: #0066cc;
+      --primary2: #0052a3;
+      --glass-bg: rgba(255, 255, 255, 0.6);
+      --glass-border: rgba(0, 0, 0, 0.1);
+      --neumorphic-shadow: 4px 4px 15px rgba(0, 0, 0, 0.15), -4px -4px 15px rgba(255, 255, 255, 0.9);
+      background: linear-gradient(135deg, #e3f2fd 0%, #f5f7fa 100%);
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 700;
+      letter-spacing: .3px;
+      font-size: 22px;
+    }
+
+    .header-title {
+      font-weight: 700;
+      font-size: 24px;
+      background: linear-gradient(135deg, var(--primary), var(--primary2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #999;
+      display: inline-block;
+      margin-left: 6px;
+      box-shadow: 0 0 0 2px rgba(255,255,255,0.08);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .connected {
+      background: #2ecc71;
+    }
+
+    .disconnected {
+      background: #e74c3c;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 16px;
+    }
+
+    @media (max-width: 1024px) {
+      .grid {
+        grid-template-columns: repeat(6, 1fr);
+      }
+    }
+
+    @media (max-width: 640px) {
+      .grid {
+        grid-template-columns: repeat(1, 1fr);
+      }
+    }
+
+    .card {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      padding: 20px;
+      backdrop-filter: blur(8px);
+      box-shadow: var(--neumorphic-shadow);
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    }
+
+    .card:hover {
+      transform: scale(1.02) translateY(-4px);
+      box-shadow: var(--neumorphic-shadow), 0 20px 40px rgba(0,0,0,0.15);
+    }
+
+    .kpi-card {
+      background: linear-gradient(135deg, var(--glass-bg), rgba(255,255,255,0.05));
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi-card::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -50%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(45deg, transparent, rgba(255,255,255,0.03), transparent);
+      transform: rotate(45deg);
+      pointer-events: none;
+    }
+
+    .col-span-3 { grid-column: span 3; }
+    .col-span-4 { grid-column: span 4; }
+    .col-span-6 { grid-column: span 6; }
+    .col-span-12 { grid-column: span 12; }
+
+    @media (max-width: 1024px) {
+      .col-span-3, .col-span-4 { grid-column: span 6; }
+      .col-span-6, .col-span-12 { grid-column: span 6; }
+    }
+
+    @media (max-width: 640px) {
+      .col-span-3, .col-span-4, .col-span-6, .col-span-12 {
+        grid-column: span 1;
+      }
+    }
+
+    .title {
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .title-icon {
+      width: 16px;
+      height: 16px;
+      opacity: 0.7;
+    }
+
+    .kpi {
+      font-size: 36px;
+      font-weight: 700;
+      margin: 8px 0 12px;
+      line-height: 1;
+      background: linear-gradient(135deg, var(--text), rgba(255,255,255,0.8));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      transition: all 0.3s ease;
+    }
+
+    .kpi.success {
+      background: linear-gradient(135deg, var(--success), #27ae60);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .kpi.danger {
+      background: linear-gradient(135deg, var(--danger), #c0392b);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    @keyframes countUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .kpi.animate {
+      animation: countUp 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 6px 0;
+      color: var(--muted);
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .progress {
+      width: 100%;
+      height: 14px;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.08);
+      overflow: hidden;
+      position: relative;
+      box-shadow: inset 2px 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--primary2));
+      width: 0%;
+      transition: width 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      position: relative;
+      border-radius: 20px;
+    }
+
+    .progress-fill::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 50%;
+      background: linear-gradient(180deg, rgba(255,255,255,0.3), transparent);
+      border-radius: 20px 20px 0 0;
+    }
+
+    .progress-fill.green {
+      background: linear-gradient(90deg, #1abc9c, #2ecc71);
+    }
+
+    .progress-fill.orange {
+      background: linear-gradient(90deg, #f39c12, #f1c40f);
+    }
+
+    .progress-fill.red {
+      background: linear-gradient(90deg, #e74c3c, #c0392b);
+    }
+
+    .btn {
+      border: 1px solid var(--glass-border);
+      background: var(--glass-bg);
+      color: var(--text);
+      padding: 12px 18px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      font-size: 14px;
+      backdrop-filter: blur(8px);
+      position: relative;
+      overflow: hidden;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+      transition: left 0.5s ease;
+    }
+
+    .btn:hover {
+      background: rgba(255,255,255,0.12);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+
+    .btn:hover::before {
+      left: 100%;
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary2));
+      border-color: transparent;
+    }
+
+    .btn-success {
+      background: var(--success);
+      border-color: transparent;
+    }
+
+    .btn-danger {
+      background: var(--danger);
+      border-color: transparent;
+    }
+
+    .btn-warning {
+      background: var(--warning);
+      border-color: transparent;
+      color: #1a1a1a;
+    }
+
+    .btn-icon {
+      padding: 8px 10px;
+      font-size: 16px;
+    }
+
+    .btn-sm {
+      padding: 6px 10px;
+      font-size: 12px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 150px;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      color: var(--text);
+      padding: 16px;
+      font-family: 'Inter', monospace;
+      resize: vertical;
+      font-size: 14px;
+      backdrop-filter: blur(8px);
+      transition: all 0.3s ease;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(0, 210, 255, 0.1), var(--neumorphic-shadow);
+      background: rgba(255,255,255,0.1);
+    }
+
+    .log-box {
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px;
+      padding: 12px;
+      height: 400px;
+      overflow-y: auto;
+      font-family: "Courier New", monospace;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .log-line {
+      margin: 2px 0;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: background .15s ease;
+    }
+
+    .log-line:hover {
+      background: rgba(255,255,255,0.05);
+    }
+
+    .log-line.error {
+      color: #ff6b6b;
+      background: rgba(255, 107, 107, 0.1);
+      border-left: 3px solid #ff6b6b;
+    }
+
+    .log-line.success {
+      color: #51cf66;
+      border-left: 3px solid #51cf66;
+    }
+
+    .log-line.warning {
+      color: #ffd43b;
+      border-left: 3px solid #ffd43b;
+    }
+
+    .log-line.info {
+      color: #74c0fc;
+      border-left: 3px solid #74c0fc;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .badge.idle {
+      background: rgba(255,255,255,0.1);
+      color: var(--muted);
+    }
+
+    .badge.processing {
+      background: linear-gradient(90deg, var(--primary), var(--primary2));
+      color: white;
+      animation: pulse-badge 1.5s infinite;
+    }
+
+    @keyframes pulse-badge {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+
+    .badge.completed {
+      background: var(--success);
+      color: white;
+    }
+
+    .badge.failed {
+      background: var(--danger);
+      color: white;
+    }
+
+    #error-card {
+      display: none;
+      background: rgba(231, 76, 60, 0.1);
+      border: 2px solid var(--danger);
+    }
+
+    #error-title {
+      color: var(--danger);
+      font-weight: 700;
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+
+    .error-screenshot {
+      max-width: 100%;
+      border-radius: 8px;
+      margin-top: 12px;
+      cursor: pointer;
+      transition: transform .2s ease;
+    }
+
+    .error-screenshot:hover {
+      transform: scale(1.02);
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .modal.show {
+      display: flex;
+    }
+
+    .modal-content {
+      background: var(--bg2);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 16px;
+      padding: 24px;
+      max-width: 600px;
+      width: 100%;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .modal-title {
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      color: var(--text);
+      font-size: 28px;
+      cursor: pointer;
+      padding: 0;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      transition: background .2s ease;
+    }
+
+    .close-btn:hover {
+      background: rgba(255,255,255,0.1);
+    }
+
+    .setting-item {
+      margin-bottom: 16px;
+    }
+
+    .setting-label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    .setting-input {
+      width: 100%;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 8px;
+      color: var(--text);
+      padding: 10px 12px;
+      font-size: 14px;
+    }
+
+    .setting-input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(0, 210, 255, 0.1);
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      padding: 16px 20px;
+      box-shadow: var(--neumorphic-shadow), 0 20px 40px rgba(0,0,0,0.3);
+      backdrop-filter: blur(12px);
+      z-index: 2000;
+      animation: slideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      max-width: 350px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 500;
+    }
+
+    .toast-icon {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(400px) scale(0.8);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0) scale(1);
+        opacity: 1;
+      }
+    }
+
+    .toast.success {
+      border-left: 4px solid var(--success);
+    }
+
+    .toast.error {
+      border-left: 4px solid var(--danger);
+    }
+
+    .toast.warning {
+      border-left: 4px solid var(--warning);
+    }
+
+    .toast.info {
+      border-left: 4px solid var(--primary);
+    }
+
+    .activity-list {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .activity-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      background: rgba(255,255,255,0.03);
+      border-left: 3px solid transparent;
+      transition: background .2s ease;
+    }
+
+    .activity-item:hover {
+      background: rgba(255,255,255,0.06);
+    }
+
+    .activity-item.completed {
+      border-left-color: var(--success);
+    }
+
+    .activity-item.failed {
+      border-left-color: var(--danger);
+    }
+
+    .activity-item.processing {
+      border-left-color: var(--primary);
+    }
+
+    .activity-icon {
+      font-size: 20px;
+    }
+
+    .activity-text {
+      flex: 1;
+      font-size: 14px;
+    }
+
+    .activity-time {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      border-bottom: 2px solid rgba(255,255,255,0.08);
+    }
+
+    .tab {
+      padding: 10px 16px;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: var(--muted);
+      font-weight: 600;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: all .2s ease;
+    }
+
+    .tab:hover {
+      color: var(--text);
+      background: rgba(255,255,255,0.05);
+    }
+
+    .tab.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .upload-area {
+      border: 2px dashed var(--glass-border);
+      border-radius: 16px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      background: var(--glass-bg);
+      backdrop-filter: blur(8px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .upload-area::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: radial-gradient(circle at center, rgba(0, 210, 255, 0.1), transparent 70%);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .upload-area:hover, .upload-area.dragover {
+      border-color: var(--primary);
+      background: rgba(0, 210, 255, 0.05);
+      transform: scale(1.02);
+      box-shadow: var(--neumorphic-shadow), 0 0 30px rgba(0, 210, 255, 0.2);
+    }
+
+    .upload-area:hover::before, .upload-area.dragover::before {
+      opacity: 1;
+    }
+
+    .upload-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+      opacity: 0.6;
+    }
+
+    .chart-container {
+      position: relative;
+      height: 300px;
+      width: 100%;
+    }
+
+    #session-timer {
+      font-family: "Courier New", monospace;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .speed-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.05);
+      font-size: 13px;
+    }
+
+    .speed-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      animation: pulse 1.5s infinite;
+    }
+
+    /* Batch Controls */
+    .batch-controls {
+      display: flex;
+      gap: 8px;
+      margin: 12px 0;
+      padding: 10px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 10px;
+    }
+
+    /* Search Box */
+    .search-box {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .search-input {
+      flex: 1;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 8px;
+      color: var(--text);
+      padding: 8px 12px;
+      font-size: 14px;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(0, 210, 255, 0.1);
+    }
+
+    /* Compact Mode Toggle */
+    .view-toggle {
+      display: flex;
+      gap: 4px;
+      padding: 4px;
+      background: var(--glass-bg);
+      border-radius: 12px;
+      border: 1px solid var(--glass-border);
+    }
+
+    .view-toggle button {
+      padding: 8px 12px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-weight: 500;
+      font-size: 12px;
+    }
+
+    .view-toggle button.active {
+      background: var(--primary);
+      color: white;
+      box-shadow: 0 2px 8px rgba(0, 210, 255, 0.3);
+    }
+
+    .compact-mode .chart-container,
+    .compact-mode .log-box,
+    .compact-mode .activity-list {
+      height: 200px;
+    }
+
+    /* Keyboard Shortcuts Modal */
+    .shortcuts-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 20px;
+    }
+
+    .shortcut-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      background: var(--glass-bg);
+      border-radius: 8px;
+      border: 1px solid var(--glass-border);
+    }
+
+    .shortcut-key {
+      background: var(--primary);
+      color: white;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: 'Courier New', monospace;
+    }
+
+    /* Enhanced File List */
+    .file-list {
+      margin-top: 16px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .file-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px;
+      background: var(--glass-bg);
+      border-radius: 8px;
+      border: 1px solid var(--glass-border);
+      margin-bottom: 8px;
+      transition: all 0.3s ease;
+    }
+
+    .file-item:hover {
+      background: rgba(255,255,255,0.1);
+      transform: translateX(4px);
+    }
+
+    .file-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .file-icon {
+      width: 24px;
+      height: 24px;
+      color: var(--primary);
+    }
+
+    .file-status {
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .file-status.valid {
+      background: var(--success);
+      color: white;
+    }
+
+    .file-status.invalid {
+      background: var(--danger);
+      color: white;
+    }
+
+    .file-status.pending {
+      background: var(--warning);
+      color: var(--bg1);
+    }
+
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: rgba(255,255,255,0.05);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.2);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255,255,255,0.3);
+    }
+
+    /* Loading States */
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid transparent;
+      border-top: 2px solid var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+    }
+
+    .btn-loading {
+      position: relative;
+      pointer-events: none;
+    }
+
+    .btn-loading::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 16px;
+      height: 16px;
+      border: 2px solid transparent;
+      border-top: 2px solid currentColor;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    .btn-loading .btn-text {
+      opacity: 0;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Pulse animation for loading states */
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .loading-pulse {
+      animation: pulse 1.5s infinite;
+    }
+
+    /* Skeleton loading */
+    .skeleton {
+      background: linear-gradient(90deg, 
+        rgba(255,255,255,0.1) 25%, 
+        rgba(255,255,255,0.2) 50%, 
+        rgba(255,255,255,0.1) 75%);
+      background-size: 200% 100%;
+      animation: loading 1.5s infinite;
+    }
+
+    @keyframes loading {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* Success states */
+    .success-checkmark {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--success);
+      position: relative;
+      display: inline-block;
+    }
+
+    .success-checkmark::after {
+      content: '';
+      position: absolute;
+      top: 6px;
+      left: 8px;
+      width: 4px;
+      height: 8px;
+      border: solid white;
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+    }
+
+    /* Improved animations */
+    @keyframes slideInUp {
+      from {
+        transform: translateY(20px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .animate-in {
+      animation: slideInUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    /* WhatsApp Preset Buttons */
+    .whatsapp-preset-btn {
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .whatsapp-preset-btn.active {
+      background: linear-gradient(135deg, #25D366, #128C7E);
+      border-color: transparent;
+      color: white;
+      box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
+    }
+
+    .whatsapp-preset-btn:not(.active):hover {
+      border-color: #25D366;
+      background: rgba(37, 211, 102, 0.1);
+    }
+
+    .whatsapp-preset-btn.active::before {
+      content: '✓';
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      font-size: 10px;
+      font-weight: bold;
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      width: 16px;
+      height: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      🧬 <span class="header-title">Thyrocare Automation</span>
+      <span class="status-dot" id="conn-dot" aria-label="Connection status"></span>
+    </div>
+    <div class="header-actions">
+      <div class="view-toggle" id="view-toggle">
+        <button class="active" onclick="toggleCompactMode(false)">Full</button>
+        <button onclick="toggleCompactMode(true)">Compact</button>
+      </div>
+      <button class="btn btn-icon" onclick="cleanProfile()" title="Clean Profile Cache (Ctrl+Shift+C)" aria-label="Clean profile cache" id="clean-profile-btn">🧹</button>
+      <button class="btn btn-icon" onclick="showShortcuts()" title="Keyboard Shortcuts (Ctrl+/)" aria-label="Show shortcuts">⌨️</button>
+      <button class="btn btn-icon" onclick="toggleTheme()" title="Toggle Theme (Ctrl+T)" aria-label="Toggle theme">🌓</button>
+      <button class="btn btn-icon" onclick="exportStats()" title="Export Stats (Ctrl+X)" aria-label="Export statistics">📊</button>
+      <button class="btn btn-icon" onclick="showSettings()" title="Settings (Ctrl+S)" aria-label="Open settings">⚙️</button>
+      <button class="btn btn-icon" onclick="openDownloadFolder()" title="Downloads (Ctrl+D)" aria-label="Open downloads folder">📁</button>
+      <button class="btn btn-icon" onclick="exportLogs()" title="Export Logs (Ctrl+E)" aria-label="Export logs">💾</button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <!-- KPI Cards -->
+    <div class="card kpi-card col-span-3 animate-in">
+      <div class="title">
+        <i data-lucide="list" class="title-icon"></i>
+        Total Barcodes
+      </div>
+      <div class="kpi" id="total-count">0</div>
+      <div class="muted">In queue</div>
+    </div>
+
+    <div class="card kpi-card col-span-3 animate-in">
+      <div class="title">
+        <i data-lucide="check-circle" class="title-icon"></i>
+        Processed
+      </div>
+      <div class="kpi success" id="done-count">0</div>
+      <div class="speed-indicator">
+        <span class="speed-dot"></span>
+        <span id="processing-speed">0 items/min</span>
+      </div>
+    </div>
+
+    <div class="card kpi-card col-span-3 animate-in">
+      <div class="title">
+        <i data-lucide="alert-circle" class="title-icon"></i>
+        Errors
+      </div>
+      <div class="kpi danger" id="error-count">0</div>
+      <div class="muted">Failed items</div>
+      <button class="btn btn-warning btn-sm" onclick="retryFailed()" id="retry-btn" style="display:none; margin-top:8px;" aria-label="Retry failed items">
+        <i data-lucide="refresh-cw" style="width: 14px; height: 14px; margin-right: 4px;"></i>
+        Retry Failed
+      </button>
+    </div>
+
+    <div class="card kpi-card col-span-3 animate-in">
+      <div class="title">
+        <i data-lucide="clock" class="title-icon"></i>
+        Session Time
+      </div>
+      <div class="kpi" id="session-timer">00:00:00</div>
+      <div class="muted">Active duration</div>
+    </div>
+
+    <!-- Progress Card -->
+    <div class="card col-span-12">
+      <div class="row">
+        <span class="title">Overall Progress</span>
+        <span id="progress-percent" class="badge idle">0%</span>
+      </div>
+      <div class="progress" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+        <div class="progress-fill" id="progress-bar"></div>
+      </div>
+      <div class="row" style="margin-top: 12px;">
+        <span id="progress-text" class="muted">Waiting to start...</span>
+        <span id="eta" class="muted">ETA: --</span>
+      </div>
+    </div>
+
+    <!-- Input Section -->
+    <div class="card col-span-6">
+      <div class="row">
+        <span class="title">
+          <i data-lucide="upload" class="title-icon"></i>
+          Barcode Input
+        </span>
+        <span class="badge" id="input-count">0</span>
+      </div>
+      
+      <div class="upload-area" id="upload-area" role="button" aria-label="Upload file area">
+        <i data-lucide="file-text" class="upload-icon" style="width: 48px; height: 48px;"></i>
+        <div style="font-weight: 600; margin-bottom: 4px;">Drop files here or click to upload</div>
+        <div class="muted" style="font-size: 12px;">Supports .txt, .csv files • Multiple files allowed</div>
+      </div>
+      <input type="file" id="file-input" accept=".txt,.csv" multiple style="display: none;" aria-label="File input" />
+      
+      <!-- File List -->
+      <div class="file-list" id="file-list" style="display: none;"></div>
+      
+      <!-- Batch Controls -->
+      <div class="batch-controls">
+        <button class="btn btn-sm" onclick="selectAll()" aria-label="Select all barcodes">
+          <i data-lucide="select-all" style="width: 14px; height: 14px; margin-right: 4px;"></i>
+          Select All
+        </button>
+        <button class="btn btn-sm" onclick="selectFailed()" aria-label="Select failed barcodes">
+          <i data-lucide="alert-circle" style="width: 14px; height: 14px; margin-right: 4px;"></i>
+          Select Failed
+        </button>
+        <button class="btn btn-sm" onclick="clearSelection()" aria-label="Clear selection">
+          <i data-lucide="x" style="width: 14px; height: 14px; margin-right: 4px;"></i>
+          Clear
+        </button>
+        <button class="btn btn-sm" onclick="validateBarcodes()" aria-label="Validate barcodes">
+          <i data-lucide="check-circle" style="width: 14px; height: 14px; margin-right: 4px;"></i>
+          <span class="btn-text">Validate</span>
+        </button>
+      </div>
+      
+      <textarea 
+        id="input-barcodes" 
+        placeholder="Enter barcodes (one per line or comma-separated)..."
+        aria-label="Barcode input area"
+      ></textarea>
+      
+      <div style="display: flex; gap: 10px; margin-top: 12px;">
+        <button class="btn btn-primary" id="start-btn" onclick="startProcess()" style="flex: 1;" aria-label="Start processing barcodes">
+          <i data-lucide="play" style="width: 16px; height: 16px; margin-right: 4px;"></i>
+          <span class="btn-text">Start Process (Ctrl+Enter)</span>
+        </button>
+        <button class="btn btn-danger" id="cancel-btn" onclick="cancelProcess()" disabled style="flex: 1;" aria-label="Cancel processing">
+          <i data-lucide="square" style="width: 16px; height: 16px; margin-right: 4px;"></i>
+          <span class="btn-text">Cancel (Ctrl+C)</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- WhatsApp Recipient Selector -->
+    <div class="card col-span-3" style="padding: 14px;">
+      <div class="row" style="margin-bottom: 8px;">
+        <span class="title" style="margin-bottom: 0;">
+          <i data-lucide="message-circle" class="title-icon"></i>
+          WhatsApp Recipient
+        </span>
+        <span class="badge" id="whatsapp-badge">Ayushman1137</span>
+      </div>
+      
+      <div style="margin-bottom: 8px;">
+        <label class="setting-label" style="margin-bottom: 4px; display: block; font-size: 11px;">Quick Select</label>
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px;">
+          <button class="btn btn-sm whatsapp-preset-btn active" onclick="selectWhatsAppContact('Ayushman1137')" data-contact="Ayushman1137" style="padding: 6px 10px; font-size: 12px;">
+            <i data-lucide="user" style="width: 12px; height: 12px; margin-right: 4px;"></i>
+            Ayushman1137
+          </button>
+          <button class="btn btn-sm whatsapp-preset-btn" onclick="selectWhatsAppContact('Mummy')" data-contact="Mummy" style="padding: 6px 10px; font-size: 12px;">
+            <i data-lucide="heart" style="width: 12px; height: 12px; margin-right: 4px;"></i>
+            Mummy
+          </button>
+          <button class="btn btn-sm whatsapp-preset-btn" onclick="selectWhatsAppContact('Gaur Report')" data-contact="Gaur Report" style="padding: 6px 10px; font-size: 12px;">
+            <i data-lucide="file-text" style="width: 12px; height: 12px; margin-right: 4px;"></i>
+            Gaur Report
+          </button>
+          <button class="btn btn-sm whatsapp-preset-btn" onclick="selectWhatsAppContact('Thyrocare Report')" data-contact="Thyrocare Report" style="padding: 6px 10px; font-size: 12px;">
+            <i data-lucide="clipboard" style="width: 12px; height: 12px; margin-right: 4px;"></i>
+            Thyrocare Report
+          </button>
+        </div>
+      </div>
+      
+      <div>
+        <label class="setting-label" for="whatsapp-contact-input" style="margin-bottom: 4px; display: block; font-size: 11px;">Custom Contact</label>
+        <div style="display: flex; gap: 6px;">
+          <input 
+            type="text" 
+            class="setting-input" 
+            id="whatsapp-contact-input" 
+            placeholder="Enter contact name..." 
+            value="Ayushman1137"
+            style="flex: 1; padding: 6px 10px; font-size: 13px;"
+            aria-label="WhatsApp contact name"
+          />
+          <button class="btn btn-success btn-sm" onclick="applyCustomContact()" aria-label="Apply custom contact" style="padding: 6px 10px;">
+            <i data-lucide="check" style="width: 14px; height: 14px;"></i>
+          </button>
+        </div>
+      </div>
+      
+      <!-- WhatsApp Status Info -->
+      <div style="margin-top: 12px; padding: 10px; background: rgba(37, 211, 102, 0.1); border-radius: 8px; border: 1px solid rgba(37, 211, 102, 0.3);">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+          <i data-lucide="info" style="width: 14px; height: 14px; color: #25D366;"></i>
+          <span style="font-size: 11px; font-weight: 600; color: #25D366;">WhatsApp Status</span>
+        </div>
+        <div style="font-size: 11px; color: var(--muted); line-height: 1.5;">
+          <div style="margin-bottom: 4px;">
+            <span style="opacity: 0.7;">Current:</span> 
+            <span style="font-weight: 600;" id="whatsapp-status-contact">Ayushman1137</span>
+          </div>
+          <div style="margin-bottom: 4px;">
+            <span style="opacity: 0.7;">Status:</span> 
+            <span style="font-weight: 600;" id="whatsapp-status-text">Ready</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 4px;">
+            <div style="width: 6px; height: 6px; border-radius: 50%; background: #25D366;" id="whatsapp-status-dot"></div>
+            <span style="font-size: 10px; opacity: 0.7;">PDF will be sent after merge</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Activity Feed -->
+    <div class="card col-span-3">
+      <div class="row">
+        <span class="title">
+          <i data-lucide="activity" class="title-icon"></i>
+          Recent Activity
+        </span>
+        <select class="btn btn-sm" id="activity-filter" onchange="filterActivity(this.value)">
+          <option value="all">All</option>
+          <option value="success">Success</option>
+          <option value="error">Errors</option>
+          <option value="warning">Warnings</option>
+        </select>
+      </div>
+      <div class="activity-list" id="activity-feed" role="log" aria-label="Activity feed">
+        <div class="activity-item">
+          <i data-lucide="info" class="activity-icon"></i>
+          <span class="activity-text">Waiting for input...</span>
+          <span class="activity-time">Just now</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Performance Chart -->
+    <div class="card col-span-6">
+      <div class="title">
+        <i data-lucide="trending-up" class="title-icon"></i>
+        Live Performance Chart
+      </div>
+      <div class="chart-container">
+        <canvas id="performanceChart" aria-label="Performance chart"></canvas>
+      </div>
+      <div class="row" style="margin-top: 12px; font-size: 12px;">
+        <span class="muted">Updates every 5 seconds</span>
+        <span id="chart-status" class="muted">Real-time monitoring</span>
+      </div>
+    </div>
+
+    <!-- Logs Section -->
+    <div class="card col-span-6">
+      <div class="row">
+        <span class="title">
+          <i data-lucide="file-text" class="title-icon"></i>
+          System Logs
+        </span>
+        <button class="btn btn-icon" onclick="clearLogs()" title="Clear Logs (Ctrl+L)" aria-label="Clear logs">
+          <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i>
+        </button>
+      </div>
+      
+      <!-- Search Box -->
+      <div class="search-box">
+        <input 
+          type="text" 
+          class="search-input" 
+          id="log-search" 
+          placeholder="Search logs..." 
+          onkeyup="filterLogs(this.value)"
+          aria-label="Search logs"
+        />
+        <button class="btn btn-sm" onclick="clearSearch()" aria-label="Clear search">
+          <i data-lucide="x" style="width: 14px; height: 14px;"></i>
+        </button>
+      </div>
+      
+      <div class="tabs" role="tablist">
+        <button class="tab active" onclick="switchTab('all-logs')" role="tab" aria-selected="true">All</button>
+        <button class="tab" onclick="switchTab('error-logs')" role="tab" aria-selected="false">Errors</button>
+        <button class="tab" onclick="switchTab('whatsapp-logs')" role="tab" aria-selected="false">WhatsApp</button>
+      </div>
+      
+      <div class="tab-content active" id="all-logs-content" role="tabpanel">
+        <div class="log-box" id="all-logs" role="log" aria-label="All logs"></div>
+      </div>
+      <div class="tab-content" id="error-logs-content" role="tabpanel">
+        <div class="log-box" id="error-logs" role="log" aria-label="Error logs"></div>
+      </div>
+      <div class="tab-content" id="whatsapp-logs-content" role="tabpanel">
+        <div class="log-box" id="whatsapp-logs" role="log" aria-label="WhatsApp logs"></div>
+      </div>
+    </div>
+
+    <!-- Error Details -->
+    <div class="card col-span-12" id="error-card" role="alert">
+      <div id="error-title">Error Occurred</div>
+      <div id="error-msg" class="muted"></div>
+      <div id="error-screenshot-container"></div>
+    </div>
+  </div>
+
+  <!-- Keyboard Shortcuts Modal -->
+  <div class="modal" id="shortcuts-modal" role="dialog" aria-labelledby="shortcuts-title" aria-modal="true">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title" id="shortcuts-title">
+          <i data-lucide="keyboard" style="width: 20px; height: 20px; margin-right: 8px;"></i>
+          Keyboard Shortcuts
+        </div>
+        <button class="close-btn" onclick="closeShortcuts()" aria-label="Close shortcuts">×</button>
+      </div>
+      
+      <div class="shortcuts-grid">
+        <div class="shortcut-item">
+          <span>Start Process</span>
+          <span class="shortcut-key">Ctrl + Enter</span>
+        </div>
+        <div class="shortcut-item">
+          <span>Cancel Process</span>
+          <span class="shortcut-key">Ctrl + C</span>
+        </div>
+        <div class="shortcut-item">
+          <span>Clear Logs</span>
+          <span class="shortcut-key">Ctrl + L</span>
+        </div>
+        <div class="shortcut-item">
+          <span>Export Logs</span>
+          <span class="shortcut-key">Ctrl + E</span>
+        </div>
+        <div class="shortcut-item">
+          <span>Export Stats</span>
+          <span class="shortcut-key">Ctrl + X</span>
+        </div>
+        <div class="shortcut-item">
+          <span>Toggle Theme</span>
+          <span class="shortcut-key">Ctrl + T</span>
+        </div>
+        <div class="shortcut-item">
+          <span>Open Downloads</span>
+          <span class="shortcut-key">Ctrl + D</span>
+        </div>
+        <div class="shortcut-item">
+          <span>Settings</span>
+          <span class="shortcut-key">Ctrl + S</span>
+        </div>
+        <div class="shortcut-item">
+          <span>Show Shortcuts</span>
+          <span class="shortcut-key">Ctrl + /</span>
+        </div>
+        <div class="shortcut-item">
+          <span>Close Modal</span>
+          <span class="shortcut-key">Escape</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="modal" id="settings-modal" role="dialog" aria-labelledby="settings-title" aria-modal="true">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title" id="settings-title">
+          <i data-lucide="settings" style="width: 20px; height: 20px; margin-right: 8px;"></i>
+          Settings
+        </div>
+        <button class="close-btn" onclick="closeSettings()" aria-label="Close settings">×</button>
+      </div>
+      
+      <div class="setting-item">
+        <label class="setting-label" for="setting-download-path">Download Folder Path</label>
+        <input type="text" class="setting-input" id="setting-download-path" placeholder="e.g., C:\Downloads" />
+      </div>
+      
+      <div class="setting-item">
+        <label class="setting-label" for="setting-delay">Processing Delay (seconds)</label>
+        <input type="number" class="setting-input" id="setting-delay" value="2" min="0" max="10" step="0.5" />
+      </div>
+      
+      <div class="setting-item">
+        <label class="setting-label" for="setting-retry">Auto-Retry on Error</label>
+        <select class="setting-input" id="setting-retry">
+          <option value="true">Enabled</option>
+          <option value="false">Disabled</option>
+        </select>
+      </div>
+      
+      <div class="setting-item">
+        <label class="setting-label" for="setting-max-retries">Max Retry Attempts</label>
+        <input type="number" class="setting-input" id="setting-max-retries" value="3" min="1" max="5" />
+      </div>
+      
+      <div style="display: flex; gap: 10px; margin-top: 20px;">
+        <button class="btn btn-success" onclick="saveSettings()" style="flex: 1;">
+          <i data-lucide="save" style="width: 16px; height: 16px; margin-right: 4px;"></i>
+          Save Settings
+        </button>
+        <button class="btn" onclick="closeSettings()" style="flex: 1;">
+          <i data-lucide="x" style="width: 16px; height: 16px; margin-right: 4px;"></i>
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const LS_KEY = 'thyrocare_barcodes';
+    const LS_SETTINGS = 'thyrocare_settings';
+    const LS_THEME = 'thyrocare_theme';
+    const LS_FAILED = 'thyrocare_failed';
+    const LS_WHATSAPP_CONTACT = 'thyrocare_whatsapp_contact';
+
+    let isRunning = false;
+    let socket;
+    let performanceChart;
+    let sessionStartTime;
+    let sessionTimerInterval;
+    let lastProcessedCount = 0;
+    let lastSpeedCheck = Date.now();
+    let failedBarcodes = [];
+    let isCompactMode = false;
+    let uploadedFiles = [];
+    let processingHistory = [];
+    let currentWhatsAppContact = 'Ayushman1137';
+
+    function el(id) {
+      return document.getElementById(id);
+    }
+
+    // Initialize Lucide icons
+    function initLucideIcons() {
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+    }
+
+    // Animated counter function
+    function animateCounter(element, start, end, duration = 1000) {
+      const startTime = performance.now();
+      const startValue = parseInt(start) || 0;
+      const endValue = parseInt(end) || 0;
+      
+      element.classList.add('animate');
+      
+      function updateCounter(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        // Easing function (ease-out)
+        const easeOut = 1 - Math.pow(1 - progress, 3);
+        const currentValue = Math.round(startValue + (endValue - startValue) * easeOut);
+        
+        element.textContent = currentValue;
+        
+        if (progress < 1) {
+          requestAnimationFrame(updateCounter);
+        } else {
+          element.classList.remove('animate');
+        }
+      }
+      
+      requestAnimationFrame(updateCounter);
+    }
+
+    // Enhanced toast with icons
+    function toast(message, type = 'info', duration = 3000) {
+      const toastEl = document.createElement('div');
+      toastEl.className = `toast ${type}`;
+      
+      const iconMap = {
+        success: 'check-circle',
+        error: 'x-circle',
+        warning: 'alert-triangle',
+        info: 'info'
+      };
+      
+      toastEl.innerHTML = `
+        <i data-lucide="${iconMap[type] || 'info'}" class="toast-icon"></i>
+        <span>${message}</span>
+      `;
+      
+      document.body.appendChild(toastEl);
+      
+      // Initialize icons for the toast
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+      
+      setTimeout(() => {
+        toastEl.style.animation = 'slideIn 0.3s ease reverse';
+        setTimeout(() => toastEl.remove(), 300);
+      }, duration);
+    }
+
+    // Compact mode toggle
+    function toggleCompactMode(compact) {
+      isCompactMode = compact;
+      document.body.classList.toggle('compact-mode', compact);
+      
+      // Update toggle buttons
+      const buttons = document.querySelectorAll('#view-toggle button');
+      buttons.forEach((btn, index) => {
+        btn.classList.toggle('active', compact ? index === 1 : index === 0);
+      });
+      
+      localStorage.setItem('thyrocare_compact', compact);
+      toast(`Switched to ${compact ? 'compact' : 'full'} mode`, 'info');
+    }
+
+    // Show shortcuts modal
+    function showShortcuts() {
+      el('shortcuts-modal').classList.add('show');
+    }
+
+    // Close shortcuts modal
+    function closeShortcuts() {
+      el('shortcuts-modal').classList.remove('show');
+    }
+
+    // WhatsApp Contact Selection Functions
+    function selectWhatsAppContact(contactName) {
+      currentWhatsAppContact = contactName;
+      
+      // Update input field
+      el('whatsapp-contact-input').value = contactName;
+      
+      // Update badge
+      el('whatsapp-badge').textContent = contactName;
+      
+      // Update status info
+      el('whatsapp-status-contact').textContent = contactName;
+      
+      // Update active button state
+      document.querySelectorAll('.whatsapp-preset-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.getAttribute('data-contact') === contactName) {
+          btn.classList.add('active');
+        }
+      });
+      
+      // Save to localStorage
+      localStorage.setItem(LS_WHATSAPP_CONTACT, contactName);
+      
+      // Send to backend
+      fetch('/api/control', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'set_whatsapp_contact', contact: contactName })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.ok) {
+          toast(`WhatsApp recipient set to: ${contactName}`, 'success');
+          // Reinitialize icons
+          if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+          }
+        }
+      })
+      .catch(err => {
+        console.error('Failed to set WhatsApp contact:', err);
+      });
+    }
+
+    function applyCustomContact() {
+      const contactName = el('whatsapp-contact-input').value.trim();
+      if (!contactName) {
+        toast('Please enter a contact name', 'warning');
+        return;
+      }
+      
+      currentWhatsAppContact = contactName;
+      
+      // Update badge
+      el('whatsapp-badge').textContent = contactName;
+      
+      // Update status info
+      el('whatsapp-status-contact').textContent = contactName;
+      
+      // Clear active state from preset buttons if custom name doesn't match
+      const matchingBtn = document.querySelector(`.whatsapp-preset-btn[data-contact="${contactName}"]`);
+      document.querySelectorAll('.whatsapp-preset-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      if (matchingBtn) {
+        matchingBtn.classList.add('active');
+      }
+      
+      // Save to localStorage
+      localStorage.setItem(LS_WHATSAPP_CONTACT, contactName);
+      
+      // Send to backend
+      fetch('/api/control', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'set_whatsapp_contact', contact: contactName })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.ok) {
+          toast(`WhatsApp recipient set to: ${contactName}`, 'success');
+        }
+      })
+      .catch(err => {
+        console.error('Failed to set WhatsApp contact:', err);
+        toast('Failed to set WhatsApp contact', 'error');
+      });
+    }
+
+    function loadWhatsAppContact() {
+      const savedContact = localStorage.getItem(LS_WHATSAPP_CONTACT) || 'Ayushman1137';
+      selectWhatsAppContact(savedContact);
+    }
+
+    // Enhanced file handling
+    function handleFiles(files) {
+      const fileList = el('file-list');
+      fileList.style.display = 'block';
+      fileList.innerHTML = '';
+      
+      uploadedFiles = [];
+      let allContent = '';
+      
+      Array.from(files).forEach((file, index) => {
+        const fileItem = document.createElement('div');
+        fileItem.className = 'file-item';
+        
+        const isValid = file.type === 'text/plain' || file.type === 'text/csv' || 
+                       file.name.endsWith('.txt') || file.name.endsWith('.csv');
+        
+        fileItem.innerHTML = `
+          <div class="file-info">
+            <i data-lucide="${isValid ? 'file-text' : 'file-x'}" class="file-icon"></i>
+            <div>
+              <div style="font-weight: 500;">${file.name}</div>
+              <div class="muted" style="font-size: 11px;">${(file.size / 1024).toFixed(1)} KB</div>
+            </div>
+          </div>
+          <span class="file-status ${isValid ? 'pending' : 'invalid'}">
+            ${isValid ? 'Pending' : 'Invalid'}
+          </span>
+        `;
+        
+        fileList.appendChild(fileItem);
+        
+        if (isValid) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const content = e.target.result;
+            allContent += (allContent ? '\n' : '') + content;
+            
+            // Update file status
+            const statusEl = fileItem.querySelector('.file-status');
+            const lines = content.split(/[,\n]+/).filter(b => b.trim()).length;
+            statusEl.textContent = `${lines} items`;
+            statusEl.className = 'file-status valid';
+            
+            // Update main textarea
+            el('input-barcodes').value = allContent;
+            updateBarcodeCount();
+            
+            uploadedFiles.push({ name: file.name, content, lines });
+            
+            if (uploadedFiles.length === files.length) {
+              toast(`Loaded ${files.length} file(s) successfully`, 'success');
+            }
+          };
+          reader.readAsText(file);
+        }
+      });
+      
+      // Initialize icons
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+    }
+
+    // Enhanced activity filter
+    function filterActivity(type) {
+      const items = document.querySelectorAll('.activity-item');
+      items.forEach(item => {
+        const isVisible = type === 'all' || item.classList.contains(type);
+        item.style.display = isVisible ? 'flex' : 'none';
+      });
+    }
+
+    // Enhanced ETA calculation with linear regression
+    function calculateETA(processed, total, startTime) {
+      if (processed <= 0 || processed >= total) return null;
+      
+      const elapsed = (Date.now() - startTime) / 1000;
+      const rate = processed / elapsed;
+      
+      // Simple linear regression for trend
+      if (processingHistory.length > 1) {
+        const recentHistory = processingHistory.slice(-10); // Last 10 data points
+        const n = recentHistory.length;
+        
+        let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+        
+        recentHistory.forEach((point, i) => {
+          sumX += i;
+          sumY += point.rate;
+          sumXY += i * point.rate;
+          sumXX += i * i;
+        });
+        
+        const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+        const currentRate = (sumY / n) + slope * (n - 1);
+        
+        if (currentRate > 0) {
+          const remaining = total - processed;
+          const etaSeconds = Math.round(remaining / currentRate);
+          return {
+            seconds: etaSeconds,
+            rate: currentRate,
+            trend: slope > 0 ? 'improving' : slope < 0 ? 'declining' : 'stable'
+          };
+        }
+      }
+      
+      // Fallback to simple calculation
+      const remaining = total - processed;
+      const etaSeconds = Math.round(remaining / rate);
+      return { seconds: etaSeconds, rate, trend: 'stable' };
+    }
+
+    // Theme Toggle
+    function toggleTheme() {
+      document.body.classList.toggle('light-theme');
+      const theme = document.body.classList.contains('light-theme') ? 'light' : 'dark';
+      localStorage.setItem(LS_THEME, theme);
+      toast(`Switched to ${theme} theme`, 'info');
+    }
+
+    // Load saved theme
+    const savedTheme = localStorage.getItem(LS_THEME);
+    if (savedTheme === 'light') {
+      document.body.classList.add('light-theme');
+    }
+
+    // Toast notifications
+    function toast(message, type = 'info') {
+      const toastEl = document.createElement('div');
+      toastEl.className = `toast ${type}`;
+      toastEl.textContent = message;
+      document.body.appendChild(toastEl);
+      
+      setTimeout(() => {
+        toastEl.style.animation = 'slideIn 0.3s ease reverse';
+        setTimeout(() => toastEl.remove(), 300);
+      }, 3000);
+    }
+
+    // 1. Performance Optimization - Batch DOM Updates
+    function addMultipleLogLines(messages) {
+      const fragment = document.createDocumentFragment();
+      messages.forEach(msg => {
+        const d = document.createElement('div');
+        d.className = 'log-line';
+        
+        // Classify log type
+        if (msg.toLowerCase().includes('error') || msg.toLowerCase().includes('failed')) {
+          d.className += ' error';
+        } else if (msg.toLowerCase().includes('success') || msg.toLowerCase().includes('completed')) {
+          d.className += ' success';
+        } else if (msg.toLowerCase().includes('warning')) {
+          d.className += ' warning';
+        } else if (msg.toLowerCase().includes('info')) {
+          d.className += ' info';
+        }
+        
+        d.textContent = msg;
+        fragment.appendChild(d);
+      });
+      
+      el('all-logs').appendChild(fragment);
+      el('all-logs').scrollTop = el('all-logs').scrollHeight;
+    }
+
+    // 2. Export Stats as CSV
+    function exportStats() {
+      const stats = {
+        total: el('total-count').textContent,
+        processed: el('done-count').textContent,
+        errors: el('error-count').textContent,
+        time: el('session-timer').textContent,
+        speed: el('processing-speed').textContent
+      };
+      
+      const csv = `Metric,Value\nTotal Barcodes,${stats.total}\nProcessed,${stats.processed}\nErrors,${stats.errors}\nSession Time,${stats.time}\nProcessing Speed,${stats.speed}`;
+      
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      downloadFile(`thyrocare_stats_${timestamp}.csv`, csv, 'text/csv');
+      toast('Stats exported successfully', 'success');
+    }
+
+    function downloadFile(filename, content, mimeType) {
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // 3. Enhanced Error Recovery - Retry Failed Items
+    async function retryFailed() {
+      if (failedBarcodes.length === 0) {
+        toast('No failed items to retry', 'info');
+        return;
+      }
+      
+      const retry = confirm(`Retry ${failedBarcodes.length} failed items?`);
+      if (!retry) return;
+      
+      try {
+        const resp = await fetch('/retry-failed', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ barcodes: failedBarcodes })
+        });
+        
+        if (resp.ok) {
+          toast(`Retrying ${failedBarcodes.length} failed items`, 'info');
+          failedBarcodes = [];
+          el('retry-btn').style.display = 'none';
+          addActivity('Retrying failed items', 'processing');
+        } else {
+          toast('Failed to retry items', 'error');
+        }
+      } catch (err) {
+        toast('Network error', 'error');
+        console.error(err);
+      }
+    }
+
+    // 4. Batch Operations
+    function selectAll() {
+      const textarea = el('input-barcodes');
+      textarea.select();
+      toast('All text selected', 'info');
+    }
+
+    function selectFailed() {
+      if (failedBarcodes.length > 0) {
+        el('input-barcodes').value = failedBarcodes.join('\n');
+        updateBarcodeCount();
+        toast(`${failedBarcodes.length} failed barcodes loaded`, 'info');
+      } else {
+        toast('No failed barcodes to select', 'warning');
+      }
+    }
+
+    function clearSelection() {
+      el('input-barcodes').value = '';
+      updateBarcodeCount();
+      toast('Input cleared', 'info');
+    }
+
+    function validateBarcodes() {
+      const barcodes = el('input-barcodes').value.trim();
+      if (!barcodes) {
+        toast('No barcodes to validate', 'warning');
+        return;
+      }
+      
+      // Show validation in progress
+      const validateBtn = event.target;
+      const originalText = validateBtn.innerHTML;
+      validateBtn.classList.add('btn-loading');
+      validateBtn.innerHTML = '<span class="btn-text">Validating...</span>';
+      validateBtn.disabled = true;
+      
+      // Simulate validation delay for better UX
+      setTimeout(() => {
+        const list = barcodes.split(/[,\n]+/).map(b => b.trim()).filter(Boolean);
+        const valid = list.filter(b => /^[A-Z0-9]+$/i.test(b));
+        const invalid = list.filter(b => !/^[A-Z0-9]+$/i.test(b));
+        
+        if (invalid.length > 0) {
+          toast(`Found ${invalid.length} invalid barcode(s). Cleaned automatically.`, 'warning');
+          console.warn('Invalid barcodes removed:', invalid);
+          addActivity(`Validation: ${invalid.length} invalid barcodes removed`, 'warning');
+        } else {
+          toast(`✅ All ${valid.length} barcodes are valid`, 'success');
+          addActivity(`Validation: All ${valid.length} barcodes valid`, 'success');
+        }
+        
+        // Keep only valid barcodes
+        el('input-barcodes').value = valid.join('\n');
+        updateBarcodeCount();
+        
+        // Reset button
+        validateBtn.classList.remove('btn-loading');
+        validateBtn.innerHTML = originalText;
+        validateBtn.disabled = false;
+      }, 800);
+    }
+
+    // 6. Search/Filter for Logs
+    function filterLogs(searchTerm) {
+      const containers = ['all-logs', 'error-logs', 'whatsapp-logs'];
+      
+      containers.forEach(containerId => {
+        const logs = el(containerId).children;
+        Array.from(logs).forEach(log => {
+          if (searchTerm) {
+            const match = log.textContent.toLowerCase().includes(searchTerm.toLowerCase());
+            log.style.display = match ? 'block' : 'none';
+          } else {
+            log.style.display = 'block';
+          }
+        });
+      });
+    }
+
+    function clearSearch() {
+      el('log-search').value = '';
+      filterLogs('');
+      toast('Search cleared', 'info');
+    }
+
+    // Enhanced Start Process with loading states
+    async function startProcess() {
+      const barcodes = el('input-barcodes').value.trim();
+      if (!barcodes) {
+        toast('Please enter at least one barcode', 'error');
+        return;
+      }
+
+      const list = barcodes.split(/[,\n]+/).map(b => b.trim()).filter(Boolean);
+      if (list.length === 0) {
+        toast('No valid barcodes found', 'error');
+        return;
+      }
+
+      // Show loading state
+      const startBtn = el('start-btn');
+      const originalText = startBtn.innerHTML;
+      startBtn.classList.add('btn-loading');
+      startBtn.innerHTML = '<span class="btn-text">Starting Process...</span>';
+      startBtn.disabled = true;
+
+      try {
+        const resp = await fetch('/api/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ barcodes: list })
+        });
+
+        const data = await resp.json();
+        
+        if (resp.ok) {
+          isRunning = true;
+          el('cancel-btn').disabled = false;
+          el('input-barcodes').disabled = true;
+          
+          // Success state
+          startBtn.classList.remove('btn-loading');
+          startBtn.innerHTML = '<i data-lucide="check" style="width: 16px; height: 16px; margin-right: 4px;"></i> Processing...';
+          
+          toast('Process started successfully', 'success');
+          addActivity(`Processing ${list.length} barcodes`, 'processing');
+          startSessionTimer();
+          clearLogs();
+          failedBarcodes = []; // Reset failed barcodes
+          
+          // Initialize icons
+          if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+          }
+        } else {
+          // Error state
+          startBtn.classList.remove('btn-loading');
+          startBtn.innerHTML = originalText;
+          startBtn.disabled = false;
+          toast(data.error || 'Failed to start process', 'error');
+        }
+      } catch (err) {
+        // Network error state
+        startBtn.classList.remove('btn-loading');
+        startBtn.innerHTML = originalText;
+        startBtn.disabled = false;
+        toast('Network error - check server connection', 'error');
+        console.error(err);
+      }
+    }
+
+    // Enhanced Cancel Process with confirmation
+    async function cancelProcess() {
+      // Custom confirmation modal would be better, but using native for now
+      if (!confirm('⚠️ Are you sure you want to cancel the running process?\n\nThis will stop all current processing.')) {
+        return;
+      }
+
+      const cancelBtn = el('cancel-btn');
+      const originalText = cancelBtn.innerHTML;
+      cancelBtn.classList.add('btn-loading');
+      cancelBtn.innerHTML = '<span class="btn-text">Cancelling...</span>';
+      cancelBtn.disabled = true;
+
+      try {
+        const resp = await fetch('/api/cancel', { method: 'POST' });
+        const data = await resp.json();
+        
+        toast(data.message || 'Process cancelled', 'warning');
+        addActivity('Process cancelled by user', 'failed');
+        stopSessionTimer();
+        resetUI();
+      } catch (err) {
+        cancelBtn.classList.remove('btn-loading');
+        cancelBtn.innerHTML = originalText;
+        cancelBtn.disabled = false;
+        toast('Failed to cancel process', 'error');
+        console.error(err);
+      }
+    }
+
+    // Enhanced Reset UI
+    function resetUI() {
+      isRunning = false;
+      
+      const startBtn = el('start-btn');
+      const cancelBtn = el('cancel-btn');
+      
+      // Reset start button
+      startBtn.classList.remove('btn-loading');
+      startBtn.innerHTML = '<i data-lucide="play" style="width: 16px; height: 16px; margin-right: 4px;"></i> Start Process (Ctrl+Enter)';
+      startBtn.disabled = false;
+      
+      // Reset cancel button
+      cancelBtn.classList.remove('btn-loading');
+      cancelBtn.innerHTML = '<i data-lucide="square" style="width: 16px; height: 16px; margin-right: 4px;"></i> Cancel (Ctrl+C)';
+      cancelBtn.disabled = true;
+      
+      el('input-barcodes').disabled = false;
+      el('progress-text').textContent = 'Ready to process';
+      
+      // Initialize icons
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+    }
+
+    // Session Timer
+    function startSessionTimer() {
+      sessionStartTime = Date.now();
+      lastProcessedCount = 0;
+      lastSpeedCheck = Date.now();
+      
+      sessionTimerInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - sessionStartTime) / 1000);
+        const hours = Math.floor(elapsed / 3600).toString().padStart(2, '0');
+        const minutes = Math.floor((elapsed % 3600) / 60).toString().padStart(2, '0');
+        const seconds = (elapsed % 60).toString().padStart(2, '0');
+        el('session-timer').textContent = `${hours}:${minutes}:${seconds}`;
+      }, 1000);
+    }
+
+    function stopSessionTimer() {
+      if (sessionTimerInterval) {
+        clearInterval(sessionTimerInterval);
+        sessionTimerInterval = null;
+      }
+    }
+
+    // Calculate processing speed
+    function updateProcessingSpeed(currentCount) {
+      const now = Date.now();
+      const timeDiff = (now - lastSpeedCheck) / 1000 / 60; // minutes
+      
+      if (timeDiff >= 0.5) { // Update every 30 seconds
+        const countDiff = currentCount - lastProcessedCount;
+        const speed = Math.round(countDiff / timeDiff);
+        el('processing-speed').textContent = `${speed} items/min`;
+        lastProcessedCount = currentCount;
+        lastSpeedCheck = now;
+      }
+    }
+
+    // Render Stats with animations
+    function renderStats(data) {
+      if (!data) return;
+
+      const total = data.total_barcodes || 0;
+      const done = data.done_barcodes || 0;
+      const errors = data.error_count || 0;
+      const progress = total > 0 ? Math.round((done / total) * 100) : 0;
+
+      // Animate counters
+      const totalEl = el('total-count');
+      const doneEl = el('done-count');
+      const errorEl = el('error-count');
+      
+      if (parseInt(totalEl.textContent) !== total) {
+        animateCounter(totalEl, totalEl.textContent, total);
+      }
+      if (parseInt(doneEl.textContent) !== done) {
+        animateCounter(doneEl, doneEl.textContent, done);
+      }
+      if (parseInt(errorEl.textContent) !== errors) {
+        animateCounter(errorEl, errorEl.textContent, errors);
+      }
+      
+      el('progress-percent').textContent = progress + '%';
+      el('progress-bar').style.width = progress + '%';
+      
+      // Track processing history for ETA calculation
+      if (sessionStartTime && done > 0) {
+        const elapsed = (Date.now() - sessionStartTime) / 1000;
+        const rate = done / elapsed;
+        
+        processingHistory.push({
+          timestamp: Date.now(),
+          processed: done,
+          rate: rate
+        });
+        
+        // Keep only recent history
+        if (processingHistory.length > 50) {
+          processingHistory.shift();
+        }
+      }
+      
+      // Update ARIA attributes
+      const progressBar = document.querySelector('.progress');
+      progressBar.setAttribute('aria-valuenow', progress);
+
+      // Show retry button if there are errors
+      if (errors > 0) {
+        el('retry-btn').style.display = 'block';
+      }
+
+      // Update progress bar color
+      const progressFill = el('progress-bar');
+      progressFill.className = 'progress-fill';
+      if (progress === 100) {
+        progressFill.classList.add('green');
+      } else if (errors > 0 && errors / total > 0.1) {
+        progressFill.classList.add('red');
+      } else if (progress > 0) {
+        progressFill.classList.add('orange');
+      }
+
+      // Update badge
+      const badge = el('progress-percent');
+      if (progress === 100) {
+        badge.className = 'badge completed';
+      } else if (progress > 0) {
+        badge.className = 'badge processing';
+      } else {
+        badge.className = 'badge idle';
+      }
+
+      // Update progress text
+      if (done > 0 && total > 0) {
+        el('progress-text').textContent = `${done} of ${total} completed`;
+        updateProcessingSpeed(done);
+      }
+
+      // Enhanced ETA calculation
+      if (done > 0 && done < total && sessionStartTime) {
+        const etaData = calculateETA(done, total, sessionStartTime);
+        if (etaData) {
+          const etaMinutes = Math.floor(etaData.seconds / 60);
+          const etaSecondsRemainder = etaData.seconds % 60;
+          const trendIcon = etaData.trend === 'improving' ? '📈' : 
+                           etaData.trend === 'declining' ? '📉' : '➡️';
+          
+          el('eta').innerHTML = `
+            ETA: ${etaMinutes}m ${etaSecondsRemainder}s 
+            <span style="font-size: 11px; opacity: 0.8;">
+              ${trendIcon} ${etaData.rate.toFixed(1)} items/min
+            </span>
+          `;
+        }
+      }
+
+      // Update performance chart
+      updatePerformanceChart(data);
+
+      // Check if process completed
+      if (done === total && total > 0 && isRunning) {
+        toast('All barcodes processed successfully!', 'success');
+        resetUI();
+        stopSessionTimer();
+      }
+    }
+
+    // Enhanced Activity Feed with icons
+    function addActivity(text, status = 'info') {
+      const feed = el('activity-feed');
+      const item = document.createElement('div');
+      item.className = `activity-item ${status}`;
+      
+      const iconMap = {
+        completed: 'check-circle',
+        failed: 'x-circle',
+        processing: 'clock',
+        success: 'check-circle',
+        error: 'alert-circle',
+        warning: 'alert-triangle',
+        info: 'info'
+      };
+      
+      const time = new Date().toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        second: '2-digit'
+      });
+      
+      item.innerHTML = `
+        <i data-lucide="${iconMap[status] || 'info'}" class="activity-icon"></i>
+        <span class="activity-text">${text}</span>
+        <span class="activity-time">${time}</span>
+      `;
+      
+      feed.insertBefore(item, feed.firstChild);
+      
+      // Initialize icons
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+      
+      // Keep only last 50 items
+      while (feed.children.length > 50) {
+        feed.removeChild(feed.lastChild);
+      }
+      
+      // Animate in
+      item.classList.add('animate-in');
+    }
+
+    // Clear Logs
+    function clearLogs() {
+      el('all-logs').innerHTML = '';
+      el('error-logs').innerHTML = '';
+      el('whatsapp-logs').innerHTML = '';
+      toast('Logs cleared', 'info');
+    }
+
+    // Export Logs
+    function exportLogs() {
+      const logs = el('all-logs').innerText;
+      if (!logs) {
+        toast('No logs to export', 'warning');
+        return;
+      }
+
+      const blob = new Blob([logs], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `thyrocare_logs_${new Date().toISOString().replace(/:/g, '-')}.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast('Logs exported successfully', 'success');
+    }
+
+    // Clean Profile Cache
+    async function cleanProfile() {
+      const btn = el('clean-profile-btn');
+      if (btn.disabled) return;
+      
+      try {
+        btn.disabled = true;
+        btn.classList.add('btn-loading');
+        
+        const resp = await fetch('/api/control', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'clean_profile' })
+        });
+        
+        const data = await resp.json();
+        
+        if (data.ok) {
+          const result = data.result || {};
+          if (result.cleaned > 0) {
+            toast(`Profile cleaned: ${result.cleaned} items removed, ${result.size_freed_mb} MB freed`, 'success');
+          } else {
+            toast('Profile already clean', 'info');
+          }
+        } else {
+          toast(data.error || 'Failed to clean profile', 'error');
+        }
+      } catch (err) {
+        console.error('Clean profile error:', err);
+        toast('Failed to clean profile', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.classList.remove('btn-loading');
+      }
+    }
+
+    // Open Download Folder
+    async function openDownloadFolder() {
+      try {
+        const resp = await fetch('/open-downloads', { method: 'POST' });
+        const data = await resp.json();
+        toast(data.message || 'Opening downloads folder...', 'info');
+      } catch (err) {
+        toast('Failed to open downloads folder', 'error');
+      }
+    }
+
+    // Settings
+    function showSettings() {
+      el('settings-modal').classList.add('show');
+    }
+
+    function closeSettings() {
+      el('settings-modal').classList.remove('show');
+    }
+
+    function saveSettings() {
+      const settings = {
+        downloadPath: el('setting-download-path').value,
+        delay: parseFloat(el('setting-delay').value),
+        retry: el('setting-retry').value === 'true',
+        maxRetries: parseInt(el('setting-max-retries').value)
+      };
+
+      localStorage.setItem(LS_SETTINGS, JSON.stringify(settings));
+      toast('Settings saved successfully', 'success');
+      closeSettings();
+
+      // Send to backend
+      fetch('/update-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings)
+      }).catch(console.error);
+    }
+
+    function loadSettings() {
+      const saved = localStorage.getItem(LS_SETTINGS);
+      if (saved) {
+        try {
+          const settings = JSON.parse(saved);
+          if (settings.downloadPath) el('setting-download-path').value = settings.downloadPath;
+          if (settings.delay) el('setting-delay').value = settings.delay;
+          if (settings.retry !== undefined) el('setting-retry').value = settings.retry.toString();
+          if (settings.maxRetries) el('setting-max-retries').value = settings.maxRetries;
+        } catch (e) {
+          console.error('Failed to load settings', e);
+        }
+      }
+    }
+
+    // Tab Switching
+    function switchTab(tabName) {
+      // Remove active from all tabs and contents
+      document.querySelectorAll('.tab').forEach(t => {
+        t.classList.remove('active');
+        t.setAttribute('aria-selected', 'false');
+      });
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+      // Add active to clicked tab
+      event.target.classList.add('active');
+      event.target.setAttribute('aria-selected', 'true');
+      
+      // Show corresponding content
+      el(`${tabName}-content`).classList.add('active');
+    }
+
+    // Add Log Line
+    function addLogLine(message) {
+      const box = el('all-logs');
+      const d = document.createElement('div');
+      d.className = 'log-line';
+
+      // Classify log type
+      if (message.toLowerCase().includes('error') || message.toLowerCase().includes('failed')) {
+        d.className += ' error';
+      } else if (message.toLowerCase().includes('success') || message.toLowerCase().includes('completed')) {
+        d.className += ' success';
+      } else if (message.toLowerCase().includes('warning')) {
+        d.className += ' warning';
+      } else if (message.toLowerCase().includes('info')) {
+        d.className += ' info';
+      }
+
+      d.textContent = message;
+      box.appendChild(d);
+      box.scrollTop = box.scrollHeight;
+
+      // Keep max 500 lines
+      while (box.children.length > 500) {
+        box.removeChild(box.firstChild);
+      }
+
+      // Also add to categorized logs
+      if (d.classList.contains('error')) {
+        const errorCopy = d.cloneNode(true);
+        el('error-logs').appendChild(errorCopy);
+      }
+
+      if (message.toLowerCase().includes('whatsapp')) {
+        const waCopy = d.cloneNode(true);
+        el('whatsapp-logs').appendChild(waCopy);
+      }
+    }
+
+    // Redesigned Clear Performance Chart
+    function initPerformanceChart() {
+      const ctx = el('performanceChart').getContext('2d');
+      
+      // Create beautiful gradient
+      const successGradient = ctx.createLinearGradient(0, 0, 0, 300);
+      successGradient.addColorStop(0, 'rgba(46, 204, 113, 0.6)');
+      successGradient.addColorStop(1, 'rgba(46, 204, 113, 0.05)');
+      
+      const errorGradient = ctx.createLinearGradient(0, 0, 0, 300);
+      errorGradient.addColorStop(0, 'rgba(231, 76, 60, 0.6)');
+      errorGradient.addColorStop(1, 'rgba(231, 76, 60, 0.05)');
+      
+      performanceChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: [],
+          datasets: [
+            {
+              label: '✅ Successful',
+              data: [],
+              backgroundColor: successGradient,
+              borderColor: '#2ecc71',
+              borderWidth: 2,
+              borderRadius: 8,
+              borderSkipped: false
+            },
+            {
+              label: '❌ Failed',
+              data: [],
+              backgroundColor: errorGradient,
+              borderColor: '#e74c3c',
+              borderWidth: 2,
+              borderRadius: 8,
+              borderSkipped: false
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            intersect: false,
+            mode: 'index'
+          },
+          plugins: {
+            legend: {
+              display: true,
+              position: 'top',
+              labels: {
+                color: 'rgba(255, 255, 255, 0.9)',
+                font: {
+                  family: 'Inter',
+                  size: 13,
+                  weight: '600'
+                },
+                padding: 15,
+                usePointStyle: true,
+                pointStyle: 'rectRounded'
+              }
+            },
+            tooltip: {
+              backgroundColor: 'rgba(15, 18, 38, 0.98)',
+              titleColor: '#ffffff',
+              bodyColor: '#ffffff',
+              borderColor: 'rgba(0, 210, 255, 0.6)',
+              borderWidth: 2,
+              cornerRadius: 10,
+              padding: 12,
+              displayColors: true,
+              titleFont: {
+                size: 14,
+                weight: 'bold'
+              },
+              bodyFont: {
+                size: 13
+              },
+              callbacks: {
+                title: function(context) {
+                  return '⏰ ' + context[0].label;
+                },
+                label: function(context) {
+                  const label = context.dataset.label || '';
+                  const value = context.parsed.y || 0;
+                  return label + ': ' + value + ' items';
+                },
+                footer: function(context) {
+                  const success = context[0].parsed.y || 0;
+                  const failed = context[1]?.parsed.y || 0;
+                  const total = success + failed;
+                  if (total > 0) {
+                    const successRate = ((success / total) * 100).toFixed(1);
+                    return '\\n📊 Success Rate: ' + successRate + '%';
+                  }
+                  return '';
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              stacked: false,
+              beginAtZero: true,
+              grid: { 
+                color: 'rgba(255, 255, 255, 0.08)',
+                drawBorder: false,
+                lineWidth: 1
+              },
+              ticks: { 
+                color: 'rgba(255, 255, 255, 0.8)',
+                font: {
+                  family: 'Inter',
+                  size: 12,
+                  weight: '500'
+                },
+                stepSize: 1,
+                callback: function(value) {
+                  return Number.isInteger(value) ? value : '';
+                }
+              },
+              title: {
+                display: true,
+                text: '📦 Number of Items',
+                color: 'rgba(255, 255, 255, 0.9)',
+                font: {
+                  family: 'Inter',
+                  size: 13,
+                  weight: '600'
+                },
+                padding: { top: 10, bottom: 10 }
+              }
+            },
+            x: {
+              grid: { 
+                display: false
+              },
+              ticks: { 
+                color: 'rgba(255, 255, 255, 0.8)',
+                maxRotation: 45,
+                minRotation: 0,
+                font: {
+                  family: 'Inter',
+                  size: 11,
+                  weight: '500'
+                }
+              },
+              title: {
+                display: true,
+                text: '🕐 Time',
+                color: 'rgba(255, 255, 255, 0.9)',
+                font: {
+                  family: 'Inter',
+                  size: 13,
+                  weight: '600'
+                },
+                padding: { top: 10 }
+              }
+            }
+          },
+          animation: {
+            duration: 800,
+            easing: 'easeInOutCubic'
+          }
+        }
+      });
+      
+      // Update chart status
+      el('chart-status').textContent = '✅ Chart Ready';
+    }
+
+    function updatePerformanceChart(stats) {
+      if (!performanceChart) return;
+
+      const time = new Date().toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit'
+      });
+      
+      const totalProcessed = stats.done_barcodes || 0;
+      const totalBarcodes = stats.total_barcodes || 0;
+      const failed = totalBarcodes - totalProcessed;
+      
+      // Only update if there's actual data
+      if (totalBarcodes === 0) return;
+
+      // Check if this time already exists
+      const existingIndex = performanceChart.data.labels.indexOf(time);
+      
+      if (existingIndex >= 0) {
+        // Update existing data point
+        performanceChart.data.datasets[0].data[existingIndex] = totalProcessed;
+        performanceChart.data.datasets[1].data[existingIndex] = failed > 0 ? failed : 0;
+      } else {
+        // Add new data point
+        performanceChart.data.labels.push(time);
+        performanceChart.data.datasets[0].data.push(totalProcessed);
+        performanceChart.data.datasets[1].data.push(failed > 0 ? failed : 0);
+
+        // Keep only last 10 time points for clarity
+        const maxPoints = 10;
+        if (performanceChart.data.labels.length > maxPoints) {
+          performanceChart.data.labels.shift();
+          performanceChart.data.datasets[0].data.shift();
+          performanceChart.data.datasets[1].data.shift();
+        }
+      }
+
+      // Smooth update animation
+      performanceChart.update('active');
+      
+      // Update chart status
+      const trend = rate > (performanceChart.data.datasets[1].data[performanceChart.data.datasets[1].data.length - 2] || 0) ? 
+                   '📈 Accelerating' : '📊 Monitoring';
+      el('chart-status').textContent = trend;
+    }
+
+    // Drag and Drop
+    function setupDragDrop() {
+      const uploadArea = el('upload-area');
+      const fileInput = el('file-input');
+
+      uploadArea.addEventListener('click', () => fileInput.click());
+
+      uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+      });
+
+      uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('dragover');
+      });
+
+      uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        
+        const file = e.dataTransfer.files[0];
+        if (file && (file.type === 'text/plain' || file.type === 'text/csv' || 
+                     file.name.endsWith('.txt') || file.name.endsWith('.csv'))) {
+          handleFile(file);
+        } else {
+          toast('Please drop a valid text or CSV file', 'error');
+        }
+      });
+
+      fileInput.addEventListener('change', (e) => {
+        const files = e.target.files;
+        if (files.length > 0) handleFiles(files);
+      });
+    }
+
+    function handleFile(file) {
+      handleFiles([file]);
+    }
+
+    // Update Barcode Count
+    function updateBarcodeCount() {
+      const barcodes = el('input-barcodes').value.trim();
+      if (barcodes) {
+        const count = barcodes.split(/[,\n]+/).filter(b => b.trim()).length;
+        el('input-count').textContent = count.toString();
+        el('input-count').className = count > 0 ? 'badge processing' : 'badge idle';
+        localStorage.setItem(LS_KEY, barcodes);
+      } else {
+        el('input-count').textContent = '0';
+        el('input-count').className = 'badge idle';
+        localStorage.removeItem(LS_KEY);
+      }
+    }
+
+    // Demo data for better first impression
+    function initDemoData() {
+      // Add some sample barcodes
+      const sampleBarcodes = [
+        'TRC001234567',
+        'TRC002345678', 
+        'TRC003456789',
+        'TRC004567890',
+        'TRC005678901'
+      ];
+      
+      if (!el('input-barcodes').value.trim()) {
+        el('input-barcodes').value = sampleBarcodes.join('\n');
+        updateBarcodeCount();
+        
+        // Add welcome activity
+        setTimeout(() => {
+          addActivity('Sample barcodes loaded for demo', 'info');
+        }, 1000);
+      }
+      
+      // Add some demo chart data
+      if (performanceChart && performanceChart.data.labels.length === 0) {
+        const times = [];
+        const processed = [];
+        const rates = [];
+        
+        for (let i = 0; i < 8; i++) {
+          const time = new Date(Date.now() - (7-i) * 60000).toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+          times.push(time);
+          processed.push(Math.floor(Math.random() * 50) + i * 10);
+          rates.push(Math.random() * 3 + 1);
+        }
+        
+        performanceChart.data.labels = times;
+        performanceChart.data.datasets[0].data = processed;
+        performanceChart.data.datasets[1].data = rates;
+        performanceChart.update();
+        
+        el('chart-status').textContent = 'Demo data loaded';
+      }
+    }
+    
+    // Startup animation sequence
+    function playStartupAnimation() {
+      // Animate cards in sequence
+      const cards = document.querySelectorAll('.card');
+      cards.forEach((card, index) => {
+        setTimeout(() => {
+          card.classList.add('animate-in');
+        }, index * 100);
+      });
+      
+      // Welcome message
+      setTimeout(() => {
+        toast('🎉 Welcome to Thyrocare Automation Dashboard', 'success', 4000);
+      }, 800);
+      
+      // Demo data after animations
+      setTimeout(() => {
+        initDemoData();
+      }, 1500);
+    }
+
+    // Initialization
+    window.addEventListener('DOMContentLoaded', () => {
+      // Initialize icons first
+      initLucideIcons();
+      
+      // Load saved states
+      loadSettings();
+      loadWhatsAppContact();
+      
+      // Load compact mode preference
+      const savedCompact = localStorage.getItem('thyrocare_compact');
+      if (savedCompact === 'true') {
+        toggleCompactMode(true);
+      }
+      
+      setupDragDrop();
+      initPerformanceChart();
+      
+      // Load failed barcodes from localStorage
+      const savedFailed = localStorage.getItem(LS_FAILED);
+      if (savedFailed) {
+        try {
+          failedBarcodes = JSON.parse(savedFailed);
+          if (failedBarcodes.length > 0) {
+            el('retry-btn').style.display = 'block';
+          }
+        } catch (e) {
+          console.error('Failed to load failed barcodes', e);
+        }
+      }
+      
+      // Restore barcodes
+      const saved = localStorage.getItem(LS_KEY);
+      if (saved) {
+        el('input-barcodes').value = saved;
+        updateBarcodeCount();
+      }
+
+      // Save barcodes on input
+      el('input-barcodes').addEventListener('input', updateBarcodeCount);
+
+      // WhatsApp contact input - Enter key to apply
+      el('whatsapp-contact-input').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          applyCustomContact();
+        }
+      });
+
+      // Enhanced keyboard shortcuts
+      document.addEventListener('keydown', (e) => {
+        // Check for modals first
+        if (e.key === 'Escape') {
+          document.querySelectorAll('.modal.show').forEach(modal => {
+            modal.classList.remove('show');
+          });
+          return;
+        }
+        
+        // Only handle shortcuts when not in input fields (except specific cases)
+        const isInputField = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT';
+        
+        if ((e.ctrlKey || e.metaKey)) {
+          switch(e.key) {
+            case 'Enter':
+              if (!isRunning) {
+                e.preventDefault();
+                startProcess();
+                toast('Starting process...', 'info');
+              }
+              break;
+              
+            case 'c':
+              if (!isInputField && isRunning) {
+                e.preventDefault();
+                cancelProcess();
+              }
+              break;
+              
+            case '/':
+              e.preventDefault();
+              showShortcuts();
+              break;
+              
+            case 'l':
+              e.preventDefault();
+              clearLogs();
+              break;
+              
+            case 'd':
+              e.preventDefault();
+              openDownloadFolder();
+              break;
+              
+            case 's':
+              e.preventDefault();
+              showSettings();
+              break;
+              
+            case 'e':
+              e.preventDefault();
+              exportLogs();
+              break;
+              
+            case 'x':
+              e.preventDefault();
+              exportStats();
+              break;
+              
+            case 't':
+              e.preventDefault();
+              toggleTheme();
+              break;
+          }
+        }
+        
+        // Ctrl+Shift shortcuts
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey) {
+          switch(e.key.toLowerCase()) {
+            case 'c':
+              if (!isRunning) {
+                e.preventDefault();
+                cleanProfile();
+              }
+              break;
+          }
+        }
+      });
+
+      // Close modal on background click
+      document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal) {
+            modal.classList.remove('show');
+          }
+        });
+      });
+
+      // Initialize icons and play startup animation
+      setTimeout(() => {
+        initLucideIcons();
+        playStartupAnimation();
+      }, 100);
+      
+      // Socket connection
+      socket = io();
+      
+      socket.on('connect', () => {
+        el('conn-dot').className = 'status-dot connected';
+        toast('Connected to server', 'success');
+        addActivity('Connected to server', 'success');
+      });
+      
+      socket.on('disconnect', () => {
+        el('conn-dot').className = 'status-dot disconnected';
+        toast('Disconnected from server', 'error');
+      });
+      
+      socket.on('connect_error', () => {
+        el('conn-dot').className = 'status-dot disconnected';
+        toast('Connection error - retrying...', 'error');
+      });
+
+      socket.on('update', (data) => { 
+        renderStats(data || {});
+        
+        // Add real-time chart update
+        if (data && (data.done_barcodes > 0 || data.total_barcodes > 0)) {
+          updatePerformanceChart(data);
+        }
+      });
+      
+      socket.on('log', (payload) => {
+        if (payload && payload.message) {
+          addLogLine(payload.message);
+        }
+      });
+      
+      socket.on('ui_error', (data) => {
+        if (!data) return;
+        
+        el('error-card').style.display = 'block';
+        el('error-title').innerText = data.title || 'Error Occurred';
+        el('error-msg').innerText = data.message || 'Unknown error';
+
+        const container = el('error-screenshot-container');
+        container.innerHTML = '';
+        
+        if (data.screenshot) {
+          const img = document.createElement('img');
+          img.src = data.screenshot;
+          img.className = 'error-screenshot';
+          img.alt = 'Error Screenshot';
+          img.onclick = () => window.open(data.screenshot, '_blank');
+          container.appendChild(img);
+          toast('Error screenshot captured - check details below', 'error');
+        }
+        
+        // Track failed barcode
+        if (data.barcode) {
+          failedBarcodes.push(data.barcode);
+          localStorage.setItem(LS_FAILED, JSON.stringify(failedBarcodes));
+          el('retry-btn').style.display = 'block';
+        }
+        
+        addActivity('Error occurred: ' + (data.title || 'Unknown'), 'failed');
+      });
+      
+      socket.on('barcode_complete', (data) => {
+        if (data && data.barcode) {
+          addActivity(`Completed: ${data.barcode}`, 'completed');
+        }
+      });
+      
+      socket.on('whatsapp_sent', (data) => {
+        if (data && data.contact) {
+          addActivity(`WhatsApp sent to ${data.contact}`, 'completed');
+        }
+      });
+      
+      socket.on('process_complete', (data) => {
+        toast('Process completed successfully!', 'success');
+        addActivity('All processing completed', 'completed');
+        stopSessionTimer();
+        resetUI();
+        
+        // Clear failed barcodes if all successful
+        if (failedBarcodes.length === 0) {
+          localStorage.removeItem(LS_FAILED);
+        }
+      });
+
+      // Initial fetch
+      fetch('/stats')
+        .then(r => r.json())
+        .then(renderStats)
+        .catch(() => console.error('Failed to fetch initial stats'));
+        
+      // Enhanced auto-refresh with chart updates
+      setInterval(() => {
+        if (!isRunning) return;
+        fetch('/stats')
+          .then(r => r.json())
+          .then(data => {
+            renderStats(data);
+            updatePerformanceChart(data);
+          })
+          .catch(() => {});
+      }, 5000);
+      
+      // Periodic chart update even when not processing (for demo)
+      setInterval(() => {
+        if (isRunning) return;
+        
+        // Simulate some demo data for the chart when idle
+        const demoData = {
+          done_barcodes: Math.floor(Math.random() * 5),
+          total_barcodes: 100
+        };
+        
+        // Only update if chart is visible and we have minimal demo activity
+        if (performanceChart && performanceChart.data.labels.length < 3) {
+          updatePerformanceChart(demoData);
+        }
+      }, 10000);
+    });
+
+    // Prevent accidental page close during processing
+    window.addEventListener('beforeunload', (e) => {
+      if (isRunning) {
+        e.preventDefault();
+        e.returnValue = 'Process is still running. Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    });
+
+    // Visibility change - pause/resume updates
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        console.log('Tab hidden - updates continue in background');
+      } else {
+        console.log('Tab visible - refreshing stats');
+        fetch('/stats')
+          .then(r => r.json())
+          .then(renderStats)
+          .catch(() => {});
+      }
+    });
+  </script>
+</body>
+</html>

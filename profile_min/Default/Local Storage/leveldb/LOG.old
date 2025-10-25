@@ -1,0 +1,14 @@
+2025/10/25-12:50:14.846 1fc4 Reusing MANIFEST C:\Users\ayush_3d4efsa\Desktop\report auto\report auto\profile\Default\Local Storage\leveldb/MANIFEST-000001
+2025/10/25-12:50:14.854 1fc4 Recovering log #134
+2025/10/25-12:50:14.854 1fc4 Level-0 table #137: started
+2025/10/25-12:50:14.862 1fc4 Level-0 table #137: 12829 bytes OK
+2025/10/25-12:50:14.866 1fc4 Delete type=0 #134
+2025/10/25-12:50:14.867 2b08 Compacting 4@0 + 1@1 files
+2025/10/25-12:50:14.877 2b08 Generated table #139@0: 128 keys, 59135 bytes
+2025/10/25-12:50:14.877 2b08 Compacted 4@0 + 1@1 files => 59135 bytes
+2025/10/25-12:50:14.878 2b08 compacted to: files[ 0 1 0 0 0 0 0 ]
+2025/10/25-12:50:14.879 2b08 Delete type=2 #127
+2025/10/25-12:50:14.879 2b08 Delete type=2 #130
+2025/10/25-12:50:14.879 2b08 Delete type=2 #132
+2025/10/25-12:50:14.880 2b08 Delete type=2 #135
+2025/10/25-12:50:14.880 2b08 Delete type=2 #137

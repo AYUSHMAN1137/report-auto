@@ -1,0 +1,9 @@
+2025/10/25-14:23:01.435 2ed4 Reusing MANIFEST C:\Users\ayush_3d4efsa\Desktop\report auto\report auto\profile_min\Default\Local Storage\leveldb/MANIFEST-000001
+2025/10/25-14:23:01.446 2ed4 Recovering log #138
+2025/10/25-14:23:01.450 2ed4 Reusing old log C:\Users\ayush_3d4efsa\Desktop\report auto\report auto\profile_min\Default\Local Storage\leveldb/000138.log 
+2025/10/25-14:23:16.445 3804 Level-0 table #142: started
+2025/10/25-14:23:16.451 3804 Level-0 table #142: 35349 bytes OK
+2025/10/25-14:23:16.454 3804 Delete type=0 #138
+2025/10/25-14:23:20.093 3804 Level-0 table #144: started
+2025/10/25-14:23:20.111 3804 Level-0 table #144: 60788 bytes OK
+2025/10/25-14:23:20.115 3804 Delete type=0 #141
